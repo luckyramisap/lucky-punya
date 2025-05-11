@@ -1,43 +1,42 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Tracking Lokasi</title>
+  <title>Pelacak Lokasi</title>
 </head>
 <body>
-  <h1>Rekam Lokasi</h1>
-  <p id="status">Mendeteksi lokasi...</p>
+  <h1>Melacak Lokasi Anda</h1>
+  <p id="status">Memuat...</p>
 
   <script>
-    function sendLocation(position) {
-      const data = {
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        accuracy: position.coords.accuracy,
-        userAgent: navigator.userAgent
-      };
-
+    function kirimDataLokasi(lat, lng, akurasi) {
       fetch("https://script.google.com/macros/s/AKfycbypdn_x4ThiuMb-Z8XC2QHVrKmVo53yHR5UkdvH5fhaKBpCGI6-Pd2Y6VxcaXuER0g8Ag/exec", {
         method: "POST",
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          latitude: lat,
+          longitude: lng,
+          accuracy: akurasi
+        }),
         headers: {
           "Content-Type": "application/json"
         }
-      }).then(response => {
-        document.getElementById("status").textContent = "Lokasi berhasil dikirim!";
-      }).catch(error => {
-        document.getElementById("status").textContent = "Gagal mengirim lokasi.";
-        console.error(error);
+      })
+      .then(res => res.text())
+      .then(res => {
+        document.getElementById("status").innerText = "Lokasi berhasil dikirim!";
+      })
+      .catch(err => {
+        document.getElementById("status").innerText = "Gagal mengirim lokasi.";
       });
     }
 
-    function errorHandler(error) {
-      document.getElementById("status").textContent = "Gagal mendapatkan lokasi: " + error.message;
-    }
-
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(sendLocation, errorHandler);
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(function(position) {
+        kirimDataLokasi(position.coords.latitude, position.coords.longitude, position.coords.accuracy);
+      }, function(error) {
+        document.getElementById("status").innerText = "Gagal mendapatkan lokasi.";
+      });
     } else {
-      document.getElementById("status").textContent = "Geolocation tidak tersedia di browser ini.";
+      document.getElementById("status").innerText = "Browser tidak mendukung geolocation.";
     }
   </script>
 </body>
